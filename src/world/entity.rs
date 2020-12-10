@@ -1,5 +1,3 @@
-use super::World;
-
 pub struct Entity {
     index: u64,
 }

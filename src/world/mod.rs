@@ -1,4 +1,4 @@
-use entity::Entity;
+pub use entity::Entity;
 
 mod entity;
 
