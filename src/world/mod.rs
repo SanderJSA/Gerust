@@ -2,19 +2,23 @@ pub use entity::Entity;
 
 mod entity;
 
+/// World represents the global state of the game
 pub struct World {
     entities: u64,
 }
 
 impl World {
+    /// Create a new World
     pub fn new() -> World {
         World { entities: 0 }
     }
 
+    /// Get number of living entities
     pub fn entities(&self) -> u64 {
         self.entities
     }
 
+    /// Create a new entity and return it
     pub fn add_entity(&mut self) -> Entity {
         let entity = Entity::new(self.entities);
         self.entities += 1;

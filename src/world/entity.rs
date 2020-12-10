@@ -1,12 +1,16 @@
+/// A unique entity
 pub struct Entity {
     index: u64,
 }
 
 impl Entity {
+    /// Create a new Entity
+    /// Note: Only the World should create Entities
     pub fn new(index: u64) -> Entity {
         Entity { index }
     }
 
+    /// Get the index of the entity
     pub fn index(&self) -> u64 {
         self.index
     }
