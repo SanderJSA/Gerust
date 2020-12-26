@@ -35,6 +35,11 @@ impl World {
         self.next_free += 1;
         self.next_free - 1
     }
+
+    pub fn register_component<T: 'static + Component>(&mut self) {
+        self.components
+            .insert(TypeId::of::<T>(), Box::new(T::new()));
+    }
 }
 
 #[cfg(test)]
@@ -68,5 +73,21 @@ mod test {
 
         assert!(entity1 == 0);
         assert!(entity2 == 1);
+    }
+
+    struct BasicComponent();
+    impl Component for BasicComponent {
+        fn new() -> BasicComponent {
+            BasicComponent {}
+        }
+    }
+
+    #[test]
+    fn register_one_component() {
+        let mut world = World::new();
+
+        world.register_component::<BasicComponent>();
+
+        assert!(world.components.len() == 1);
     }
 }
