@@ -1,3 +1,3 @@
 mod world;
 
-pub use world::{Entity, World};
+pub use world::{Component, Entity, System, World};

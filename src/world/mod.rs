@@ -1,6 +1,10 @@
-pub use entity::Entity;
-
+mod component;
 mod entity;
+mod system;
+
+pub use component::Component;
+pub use entity::Entity;
+pub use system::System;
 
 /// World represents the global state of the game
 pub struct World {
