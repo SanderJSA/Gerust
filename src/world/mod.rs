@@ -40,6 +40,13 @@ impl World {
         self.components
             .insert(TypeId::of::<T>(), Box::new(T::new()));
     }
+
+    pub fn get_component<T: 'static + Component>(&mut self) -> &mut dyn Component {
+        self.components
+            .get_mut(&TypeId::of::<T>())
+            .expect("Could not get component, has it been registered ?")
+            .as_mut()
+    }
 }
 
 #[cfg(test)]
@@ -89,5 +96,22 @@ mod test {
         world.register_component::<BasicComponent>();
 
         assert!(world.components.len() == 1);
+    }
+
+    #[test]
+    fn get_one_component() {
+        let mut world = World::new();
+
+        world.register_component::<BasicComponent>();
+
+        world.get_component::<BasicComponent>();
+    }
+
+    #[test]
+    #[should_panic(expected = "Could not get component, has it been registered ?")]
+    fn get_component_not_registered() {
+        let mut world = World::new();
+
+        world.get_component::<BasicComponent>();
     }
 }
