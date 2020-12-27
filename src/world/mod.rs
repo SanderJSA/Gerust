@@ -3,7 +3,8 @@ mod entity;
 mod system;
 
 pub use component::Component;
-pub use entity::Entity;
+use entity::Entity;
+pub use entity::EntityIndex;
 pub use system::System;
 
 use std::any::TypeId;
@@ -11,11 +12,11 @@ use std::collections::HashMap;
 
 /// World represents the global state of the game
 pub struct World {
-    entities: HashMap<u64, Entity>,
+    entities: HashMap<EntityIndex, Entity>,
 
     components: HashMap<TypeId, Box<dyn Component>>,
 
-    next_free: u64,
+    next_free: EntityIndex,
 }
 
 impl World {
@@ -30,17 +31,20 @@ impl World {
 
     /// Create a new entity and return its index
     pub fn create_entity(&mut self) -> u64 {
-        self.entities
-            .insert(self.next_free, Entity::new(self.next_free));
+        let index = self.next_free;
+        self.entities.insert(index, Entity::new(self.next_free));
         self.next_free += 1;
-        self.next_free - 1
+        index
     }
 
+    /// Register a component for a World
     pub fn register_component<T: 'static + Component>(&mut self) {
         self.components
             .insert(TypeId::of::<T>(), Box::new(T::new()));
     }
 
+    /// Retrieve a component in a World
+    /// Will unwrap if component has not been registered before
     pub fn get_component<T: 'static + Component>(&mut self) -> &mut dyn Component {
         self.components
             .get_mut(&TypeId::of::<T>())

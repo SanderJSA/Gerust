@@ -1,3 +1,6 @@
+/// An index pointing to a unique entity
+pub type EntityIndex = u64;
+
 /// A unique entity
 pub struct Entity {
     index: u64,
