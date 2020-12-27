@@ -1,31 +1,62 @@
 /// An index pointing to a unique entity
 pub type EntityIndex = u64;
 
-/// A unique entity
+/// A unique entity containing the components it's attached to
 pub struct Entity {
-    index: u64,
+    components_mask: u64,
 }
 
 impl Entity {
-    /// Create a new Entity
-    /// Note: Only the World should create Entities
-    pub fn new(index: u64) -> Entity {
-        Entity { index }
+    /// Create a new Entity wit
+    pub fn new() -> Entity {
+        Entity { components_mask: 0 }
     }
 
-    /// Get the index of the entity
-    pub fn index(&self) -> u64 {
-        self.index
+    /// Get the mask of the entity
+    pub fn components_mask(&self) -> u64 {
+        self.components_mask
+    }
+
+    pub fn add_component(&mut self, component_mask: u64) {
+        self.components_mask |= component_mask;
+    }
+
+    pub fn remove_component(&mut self, component_mask: u64) {
+        self.components_mask &= !component_mask;
     }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
+
     #[test]
     fn new_entity() {
-        let entity = Entity::new(0);
+        let entity = Entity::new();
 
-        assert!(entity.index() == 0);
+        assert!(entity.components_mask() == 0);
+    }
+
+    #[test]
+    fn add_components() {
+        let mut entity = Entity::new();
+
+        entity.add_component(0b100000);
+        entity.add_component(0b1000);
+
+        assert!(entity.components_mask() == 0b101000);
+    }
+
+    #[test]
+    fn remove_components() {
+        let mut entity = Entity::new();
+        entity.add_component(0b100000);
+        entity.add_component(0b1000);
+        entity.add_component(0b100);
+
+        entity.remove_component(0b100);
+        entity.remove_component(0b100000);
+
+        assert!(entity.components_mask() == 0b1000);
     }
 }

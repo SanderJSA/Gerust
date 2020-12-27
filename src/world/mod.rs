@@ -32,7 +32,7 @@ impl World {
     /// Create a new entity and return its index
     pub fn create_entity(&mut self) -> u64 {
         let index = self.next_free;
-        self.entities.insert(index, Entity::new(self.next_free));
+        self.entities.insert(index, Entity::new());
         self.next_free += 1;
         index
     }
