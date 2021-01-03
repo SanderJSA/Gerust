@@ -1,5 +1,5 @@
-pub trait Component {
-    fn new() -> Self
-    where
-        Self: Sized;
+use std::any::Any;
+
+pub trait Component: Sized + Any {
+    fn new() -> Self;
 }
