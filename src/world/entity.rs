@@ -1,9 +1,10 @@
 /// An index pointing to a unique entity
 pub type EntityIndex = u64;
+pub type ComponentMask = u64;
 
 /// A unique entity containing the components it's attached to
 pub struct Entity {
-    components_mask: u64,
+    components_mask: ComponentMask,
 }
 
 impl Entity {
@@ -13,15 +14,15 @@ impl Entity {
     }
 
     /// Get the mask of the entity
-    pub fn components_mask(&self) -> u64 {
+    pub fn components_mask(&self) -> ComponentMask {
         self.components_mask
     }
 
-    pub fn add_component(&mut self, component_mask: u64) {
+    pub fn add_component(&mut self, component_mask: ComponentMask) {
         self.components_mask |= component_mask;
     }
 
-    pub fn remove_component(&mut self, component_mask: u64) {
+    pub fn remove_component(&mut self, component_mask: ComponentMask) {
         self.components_mask &= !component_mask;
     }
 }
