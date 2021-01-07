@@ -27,6 +27,9 @@ pub struct World {
     /// The associated mask for each Component
     component_masks: HashMap<TypeId, ComponentMask>,
 
+    /// The registered systems
+    systems: Vec<Box<dyn System>>,
+
     /// The next available entity index
     next_free: EntityIndex,
 }
@@ -38,6 +41,7 @@ impl World {
             entities: HashMap::new(),
             components: HashMap::new(),
             component_masks: HashMap::new(),
+            systems: vec![],
             next_free: 0,
         }
     }
@@ -99,6 +103,16 @@ impl World {
 
     pub fn get_mask<T: 'static + Component>(&self) -> ComponentMask {
         self.component_masks[&TypeId::of::<T>()]
+    }
+
+    pub fn register_system<T: 'static + System>(&mut self, system: T) {
+        self.systems.push(Box::new(system));
+    }
+
+    pub fn update(&self) {
+        for system in self.systems.iter() {
+            system.update(self);
+        }
     }
 }
 
