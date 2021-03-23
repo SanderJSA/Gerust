@@ -9,6 +9,9 @@ pub use storage::{Storage, StorageTrait};
 pub use system::System;
 
 use entity::Entity;
+use sdl2::keyboard::Keycode;
+use sdl2::rect::Rect;
+use sdl2::{event::Event, pixels::Color};
 use std::any::{Any, TypeId};
 use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
@@ -36,14 +39,52 @@ pub struct World {
 
 impl World {
     /// Create a new World
-    pub fn new() -> World {
-        World {
+    pub fn new((width, height): (u32, u32)) -> Result<World, String> {
+        let sdl_context = sdl2::init()?;
+        let video_subsystem = sdl_context.video()?;
+
+        let window = video_subsystem
+            .window("SDL2", width, height)
+            .position_centered()
+            .build()
+            .map_err(|e| e.to_string())?;
+
+        let mut canvas = window
+            .into_canvas()
+            .accelerated()
+            .build()
+            .map_err(|e| e.to_string())?;
+
+        canvas.set_draw_color(Color::RGB(0, 255, 255));
+        canvas.clear();
+        canvas.present();
+
+        let mut events = sdl_context.event_pump()?;
+
+        'mainloop: loop {
+            for event in events.poll_iter() {
+                match event {
+                    Event::Quit { .. }
+                    | Event::KeyDown {
+                        keycode: Option::Some(Keycode::Escape),
+                        ..
+                    } => break 'mainloop,
+                    Event::MouseButtonDown { x, y, .. } => {
+                        canvas.fill_rect(Rect::new(x, y, 1, 1))?;
+                        canvas.present();
+                    }
+                    _ => {}
+                }
+            }
+        }
+
+        Ok(World {
             entities: HashMap::new(),
             components: HashMap::new(),
             component_masks: HashMap::new(),
             systems: vec![],
             next_free: 0,
-        }
+        })
     }
 
     /// Create a new entity and return its index
