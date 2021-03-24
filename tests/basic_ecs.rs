@@ -42,7 +42,7 @@ fn basic_ecs() {
     engine.register_system(Gravity {});
 
     for _ in 0..9 {
-        engine.update();
+        engine.update_ecs();
     }
 
     assert!(engine.get_component::<Position>().get(entity) == &Position::new(0, 10));

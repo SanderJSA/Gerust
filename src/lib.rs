@@ -9,14 +9,18 @@ pub use storage::{Storage, StorageTrait};
 pub use system::System;
 
 use entity::Entity;
+use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
-use sdl2::rect::Rect;
-use sdl2::render::{Canvas, RenderTarget};
+use sdl2::render::Canvas;
 use sdl2::video::Window;
-use sdl2::{event::Event, pixels::Color};
+use sdl2::EventPump;
 use std::any::{Any, TypeId};
 use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
+use std::thread;
+use std::time::{Duration, Instant};
+
+const FRAMERATE: f64 = 60.;
 
 /// Engine represents the global state of the game
 pub struct Engine {
@@ -39,7 +43,10 @@ pub struct Engine {
     next_free: EntityIndex,
 
     /// Rendering is done on the canvas,
-    canvas: Canvas<Window>,
+    pub canvas: RefCell<Canvas<Window>>,
+
+    /// Event loop
+    events: EventPump,
 }
 
 impl Engine {
@@ -60,11 +67,7 @@ impl Engine {
             .build()
             .map_err(|e| e.to_string())?;
 
-        canvas.set_draw_color(Color::RGB(0, 255, 255));
-        canvas.clear();
         canvas.present();
-
-        let mut events = sdl_context.event_pump()?;
 
         Ok(Engine {
             entities: HashMap::new(),
@@ -72,7 +75,8 @@ impl Engine {
             component_masks: HashMap::new(),
             systems: vec![],
             next_free: 0,
-            canvas,
+            canvas: RefCell::new(canvas),
+            events: sdl_context.event_pump()?,
         })
     }
 
@@ -139,10 +143,30 @@ impl Engine {
         self.systems.push(Box::new(system));
     }
 
-    pub fn update(&self) {
+    pub fn update_ecs(&self) {
         for system in self.systems.iter() {
             system.update(self);
         }
+    }
+
+    pub fn run(&mut self) -> Result<(), String> {
+        let delay = Duration::from_secs_f64(1. / FRAMERATE);
+        'mainloop: loop {
+            let frame_start = Instant::now();
+            for event in self.events.poll_iter() {
+                match event {
+                    Event::Quit { .. }
+                    | Event::KeyDown {
+                        keycode: Option::Some(Keycode::Escape),
+                        ..
+                    } => break 'mainloop,
+                    _ => {}
+                }
+            }
+            self.update_ecs();
+            thread::sleep(delay - frame_start.elapsed());
+        }
+        Ok(())
     }
 }
 
@@ -248,37 +272,3 @@ mod test {
         assert!(engine.entities[&entity].components_mask() == 0);
     }
 }
-
-/*
-*
-       'mainloop: loop {
-           for event in events.poll_iter() {
-               match event {
-                   Event::Quit { .. }
-                   | Event::KeyDown {
-                       keycode: Option::Some(Keycode::Escape),
-                       ..
-                   } => break 'mainloop,
-                   Event::MouseButtonDown { x, y, .. } => {
-                       canvas.fill_rect(Rect::new(x, y, 1, 1))?;
-                       canvas.present();
-                   }
-                   _ => {}
-               }
-           }
-       }
-
-       */
-
-/*
-*
-*
-   pub fn run(self) {
-       let delay = Duration::from_secs_f64(1. / self.framerate);
-       loop {
-           let frame_start = Instant::now();
-           self.engine.update();
-           thread::sleep(delay - frame_start.elapsed());
-       }
-   }
-   */
