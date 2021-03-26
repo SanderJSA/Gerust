@@ -1,4 +1,6 @@
 use gerust::*;
+use sdl2::event::Event;
+use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 
@@ -17,7 +19,7 @@ impl Position {
 
 struct Gravity {}
 impl System for Gravity {
-    fn update(&self, engine: &Engine) {
+    fn update(&self, engine: &Engine, _: &[Event]) -> Result<UpdateStatus, String> {
         let mask = engine.get_mask::<Position>();
         let mut positions = engine.get_component::<Position>();
 
@@ -28,12 +30,13 @@ impl System for Gravity {
         {
             positions.get_mut(*entity).y = positions.get(*entity).y.saturating_sub(2);
         }
+        Ok(UpdateStatus::Continue)
     }
 }
 
 struct Render {}
 impl System for Render {
-    fn update(&self, engine: &Engine) {
+    fn update(&self, engine: &Engine, _: &[Event]) -> Result<UpdateStatus, String> {
         let mask = engine.get_mask::<Position>();
         let positions = engine.get_component::<Position>();
         let mut canvas = engine.canvas.borrow_mut();
@@ -52,6 +55,24 @@ impl System for Render {
                 .unwrap();
         }
         canvas.present();
+        Ok(UpdateStatus::Continue)
+    }
+}
+
+struct Exit {}
+impl System for Exit {
+    fn update(&self, _: &Engine, events: &[Event]) -> Result<UpdateStatus, String> {
+        for event in events {
+            match event {
+                Event::Quit { .. }
+                | Event::KeyDown {
+                    keycode: Option::Some(Keycode::Escape),
+                    ..
+                } => return Ok(UpdateStatus::Exit),
+                _ => {}
+            }
+        }
+        Ok(UpdateStatus::Continue)
     }
 }
 
@@ -67,5 +88,6 @@ fn main() {
 
     engine.register_system(Gravity {});
     engine.register_system(Render {});
+    engine.register_system(Exit {});
     engine.run().expect("Could not run engine");
 }

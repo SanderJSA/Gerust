@@ -1,5 +1,7 @@
-use crate::Engine;
+use crate::{Engine, UpdateStatus};
+use sdl2::event::Event;
 
 pub trait System {
-    fn update(&self, engine: &Engine);
+    /// Called on every frame, Returning Ok(UpdateStatus::Exit) exits the engine
+    fn update(&self, engine: &Engine, events: &[Event]) -> Result<UpdateStatus, String>;
 }

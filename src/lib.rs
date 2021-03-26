@@ -10,7 +10,6 @@ pub use system::System;
 
 use entity::Entity;
 use sdl2::event::Event;
-use sdl2::keyboard::Keycode;
 use sdl2::render::Canvas;
 use sdl2::video::Window;
 use sdl2::EventPump;
@@ -21,6 +20,11 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 const FRAMERATE: f64 = 60.;
+
+pub enum UpdateStatus {
+    Continue,
+    Exit,
+}
 
 /// Engine represents the global state of the game
 pub struct Engine {
@@ -143,30 +147,29 @@ impl Engine {
         self.systems.push(Box::new(system));
     }
 
-    pub fn update_ecs(&self) {
+    fn update_ecs(&self, events: &[Event]) -> Result<UpdateStatus, String> {
         for system in self.systems.iter() {
-            system.update(self);
+            match system.update(self, events) {
+                Ok(UpdateStatus::Exit) => return Ok(UpdateStatus::Exit),
+                Err(err) => return Err(err),
+                _ => {}
+            }
         }
+        Ok(UpdateStatus::Continue)
     }
 
     pub fn run(&mut self) -> Result<(), String> {
         let delay = Duration::from_secs_f64(1. / FRAMERATE);
-        'mainloop: loop {
+        loop {
             let frame_start = Instant::now();
-            for event in self.events.poll_iter() {
-                match event {
-                    Event::Quit { .. }
-                    | Event::KeyDown {
-                        keycode: Option::Some(Keycode::Escape),
-                        ..
-                    } => break 'mainloop,
-                    _ => {}
-                }
+            let events: Vec<Event> = self.events.poll_iter().collect();
+            match self.update_ecs(&events) {
+                Ok(UpdateStatus::Exit) => return Ok(()),
+                Err(err) => return Err(err),
+                _ => {}
             }
-            self.update_ecs();
             thread::sleep(delay - frame_start.elapsed());
         }
-        Ok(())
     }
 }
 
