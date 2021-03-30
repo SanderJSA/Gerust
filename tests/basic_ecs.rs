@@ -15,11 +15,11 @@ impl Position {
 
 struct Gravity {}
 impl System for Gravity {
-    fn update(&self, world: &World) {
-        let mask = world.get_mask::<Position>();
-        let mut positions = world.get_component::<Position>();
+    fn update(&self, engine: &Engine) {
+        let mask = engine.get_mask::<Position>();
+        let mut positions = engine.get_component::<Position>();
 
-        for (entity, _) in world
+        for (entity, _) in engine
             .entities
             .iter()
             .filter(|(_, entity)| entity.components_mask() == mask)
@@ -32,18 +32,18 @@ impl System for Gravity {
 
 #[test]
 fn basic_ecs() {
-    let mut world = World::new();
+    let mut engine = Engine::default();
 
-    world.register_component::<Position>();
+    engine.register_component::<Position>();
 
-    let entity = world.create_entity();
-    world.add_entity_component(entity, Position::new(0, 100));
+    let entity = engine.create_entity();
+    engine.add_entity_component(entity, Position::new(0, 100));
 
-    world.register_system(Gravity {});
+    engine.register_system(Gravity {});
 
     for _ in 0..9 {
-        world.update();
+        engine.update_ecs();
     }
 
-    assert!(world.get_component::<Position>().get(entity) == &Position::new(0, 10));
+    assert!(engine.get_component::<Position>().get(entity) == &Position::new(0, 10));
 }
