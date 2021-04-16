@@ -25,6 +25,7 @@ impl System for Gravity {
 
         for (entity, _) in engine
             .entities
+            .borrow()
             .iter()
             .filter(|(_, entity)| entity.components_mask() == mask)
         {
@@ -46,6 +47,7 @@ impl System for Render {
 
         for (entity, _) in engine
             .entities
+            .borrow()
             .iter()
             .filter(|(_, entity)| entity.components_mask() == mask)
         {
@@ -76,6 +78,22 @@ impl System for Exit {
     }
 }
 
+struct SpawnOnClick {}
+impl System for SpawnOnClick {
+    fn update(&self, engine: &Engine, events: &[Event]) -> Result<UpdateStatus, String> {
+        for event in events {
+            match event {
+                Event::MouseButtonDown { x, y, .. } => {
+                    let entity1 = engine.create_entity();
+                    engine.add_entity_component(entity1, Position::new(*x as u32, *y as u32));
+                }
+                _ => {}
+            }
+        }
+        Ok(UpdateStatus::Continue)
+    }
+}
+
 fn main() {
     let mut engine = Engine::new("Basic Engine", 640, 480).expect("Could not initialize engine");
 
@@ -89,5 +107,6 @@ fn main() {
     engine.register_system(Gravity {});
     engine.register_system(Render {});
     engine.register_system(Exit {});
+    engine.register_system(SpawnOnClick {});
     engine.run().expect("Could not run engine");
 }
