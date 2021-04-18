@@ -17,30 +17,44 @@ impl Position {
     }
 }
 
-struct Gravity {}
+#[derive(Debug, PartialEq, Eq)]
+struct Velocity {
+    x: u32,
+    y: u32,
+}
+
+impl Component for Velocity {}
+impl Velocity {
+    fn new() -> Velocity {
+        Velocity { x: 0, y: 0 }
+    }
+}
+
+struct Gravity;
 impl System for Gravity {
     fn update(&self, engine: &Engine, _: &[Event]) -> Result<UpdateStatus, String> {
-        let mask = engine.get_mask::<Position>();
-        let mut positions = engine.get_component::<Position>();
+        let mask = engine.get_mask::<Velocity>();
+        let mut velocities = engine.get_component::<Velocity>();
 
         for (entity, _) in engine
             .entities
             .borrow()
             .iter()
-            .filter(|(_, entity)| entity.components_mask() == mask)
+            .filter(|(_, entity)| entity.components_mask() & mask != 0)
         {
-            positions.get_mut(*entity).y = positions.get(*entity).y.saturating_sub(2);
+            velocities.get_mut(*entity).y += 1;
         }
         Ok(UpdateStatus::Continue)
     }
 }
 
-struct Render {}
+struct Render;
 impl System for Render {
     fn update(&self, engine: &Engine, _: &[Event]) -> Result<UpdateStatus, String> {
         let mask = engine.get_mask::<Position>();
         let positions = engine.get_component::<Position>();
         let mut canvas = engine.canvas.borrow_mut();
+
         canvas.set_draw_color(Color::RGB(0, 255, 255));
         canvas.clear();
         canvas.set_draw_color(Color::RGB(0, 0, 0));
@@ -49,7 +63,7 @@ impl System for Render {
             .entities
             .borrow()
             .iter()
-            .filter(|(_, entity)| entity.components_mask() == mask)
+            .filter(|(_, entity)| entity.components_mask() & mask != 0)
         {
             let entity_pos = positions.get(*entity);
             canvas
@@ -61,7 +75,7 @@ impl System for Render {
     }
 }
 
-struct Exit {}
+struct Exit;
 impl System for Exit {
     fn update(&self, _: &Engine, events: &[Event]) -> Result<UpdateStatus, String> {
         for event in events {
@@ -78,17 +92,40 @@ impl System for Exit {
     }
 }
 
-struct SpawnOnClick {}
+struct SpawnOnClick;
 impl System for SpawnOnClick {
     fn update(&self, engine: &Engine, events: &[Event]) -> Result<UpdateStatus, String> {
         for event in events {
             match event {
                 Event::MouseButtonDown { x, y, .. } => {
-                    let entity1 = engine.create_entity();
-                    engine.add_entity_component(entity1, Position::new(*x as u32, *y as u32));
+                    let entity = engine.create_entity();
+                    engine.add_entity_component(entity, Position::new(*x as u32, *y as u32));
+                    engine.add_entity_component(entity, Velocity::new());
                 }
                 _ => {}
             }
+        }
+        Ok(UpdateStatus::Continue)
+    }
+}
+
+struct ApplyVelocity;
+impl System for ApplyVelocity {
+    fn update(&self, engine: &Engine, _: &[Event]) -> Result<UpdateStatus, String> {
+        let mask = engine.get_mask::<Position>() | engine.get_mask::<Velocity>();
+        let mut positions = engine.get_component::<Position>();
+        let velocities = engine.get_component::<Velocity>();
+
+        for (entity, _) in engine
+            .entities
+            .borrow()
+            .iter()
+            .filter(|(_, entity)| entity.components_mask() & mask != 0)
+        {
+            let entity_pos = positions.get_mut(*entity);
+            let entity_velocity = velocities.get(*entity);
+            entity_pos.x += entity_velocity.x;
+            entity_pos.y += entity_velocity.y;
         }
         Ok(UpdateStatus::Continue)
     }
@@ -98,15 +135,19 @@ fn main() {
     let mut engine = Engine::new("Basic Engine", 640, 480).expect("Could not initialize engine");
 
     engine.register_component::<Position>();
+    engine.register_component::<Velocity>();
 
     let entity1 = engine.create_entity();
     engine.add_entity_component(entity1, Position::new(100, 1000));
+    engine.add_entity_component(entity1, Velocity::new());
     let entity2 = engine.create_entity();
     engine.add_entity_component(entity2, Position::new(56, 800));
+    engine.add_entity_component(entity2, Velocity::new());
 
-    engine.register_system(Gravity {});
-    engine.register_system(Render {});
     engine.register_system(Exit {});
     engine.register_system(SpawnOnClick {});
+    engine.register_system(Gravity {});
+    engine.register_system(ApplyVelocity {});
+    engine.register_system(Render {});
     engine.run().expect("Could not run engine");
 }
