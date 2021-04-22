@@ -29,7 +29,7 @@ pub enum UpdateStatus {
 /// Engine represents the global state of the game
 pub struct Engine {
     /// Current entites in our Engine
-    pub entities: HashMap<EntityIndex, Entity>,
+    pub entities: RefCell<HashMap<EntityIndex, Entity>>,
 
     /// Component storage
     /// Note: There is an Any instead of a StorageTrait, as Rust doesn't support
@@ -44,7 +44,7 @@ pub struct Engine {
     systems: Vec<Box<dyn System>>,
 
     /// The next available entity index
-    next_free: EntityIndex,
+    next_free: RefCell<EntityIndex>,
 
     /// Rendering is done on the canvas,
     pub canvas: RefCell<Canvas<Window>>,
@@ -74,32 +74,33 @@ impl Engine {
         canvas.present();
 
         Ok(Engine {
-            entities: HashMap::new(),
+            entities: RefCell::new(HashMap::new()),
             components: HashMap::new(),
             component_masks: HashMap::new(),
             systems: vec![],
-            next_free: 0,
+            next_free: RefCell::new(0),
             canvas: RefCell::new(canvas),
             events: sdl_context.event_pump()?,
         })
     }
 
     /// Create a new entity and return its index
-    pub fn create_entity(&mut self) -> EntityIndex {
-        let index = self.next_free;
-        self.entities.insert(index, Entity::new());
-        self.next_free += 1;
+    pub fn create_entity(&self) -> EntityIndex {
+        let index = *self.next_free.borrow();
+        self.entities.borrow_mut().insert(index, Entity::new());
+        *self.next_free.borrow_mut() += 1;
         index
     }
 
     /// Add a component to an entity
     /// Will panic if given index doesn't exist or Component has not been registered
     pub fn add_entity_component<T: 'static + Component>(
-        &mut self,
+        &self,
         entity_index: EntityIndex,
         component: T,
     ) {
         self.entities
+            .borrow_mut()
             .get_mut(&entity_index)
             .unwrap()
             .add_component(self.component_masks[&TypeId::of::<T>()]);
@@ -111,6 +112,7 @@ impl Engine {
     /// Will panic if given index doesn't exist or Component has not been registered
     pub fn remove_entity_component<T: 'static + Component>(&mut self, index: EntityIndex) {
         self.entities
+            .borrow_mut()
             .get_mut(&index)
             .unwrap()
             .remove_component(self.component_masks[&TypeId::of::<T>()]);
@@ -147,7 +149,7 @@ impl Engine {
         self.systems.push(Box::new(system));
     }
 
-    fn update_ecs(&self, events: &[Event]) -> Result<UpdateStatus, String> {
+    fn update_ecs(&mut self, events: &[Event]) -> Result<UpdateStatus, String> {
         for system in self.systems.iter() {
             match system.update(self, events) {
                 Ok(UpdateStatus::Exit) => return Ok(UpdateStatus::Exit),

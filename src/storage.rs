@@ -1,4 +1,5 @@
 use super::{Component, EntityIndex};
+use std::any;
 use std::collections::HashMap;
 
 pub trait StorageTrait<T: Component> {
@@ -40,11 +41,19 @@ impl<T: Component> StorageTrait<T> for Storage<T> {
     }
 
     fn get(&self, index: EntityIndex) -> &T {
-        self.entity_components.get(&index).unwrap()
+        self.entity_components.get(&index).expect(&format!(
+            "Could not get component {} for entity {}",
+            any::type_name::<T>(),
+            index
+        ))
     }
 
     fn get_mut(&mut self, index: EntityIndex) -> &mut T {
-        self.entity_components.get_mut(&index).unwrap()
+        self.entity_components.get_mut(&index).expect(&format!(
+            "Could not mutably get component {} for entity {}",
+            any::type_name::<T>(),
+            index
+        ))
     }
 }
 
